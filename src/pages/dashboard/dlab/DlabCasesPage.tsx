@@ -25,6 +25,8 @@ import { blockedReason, nextStage, prevStage, splitLegacyTeeth } from "@/lib/lab
 import { toast } from "@/hooks/use-toast";
 import { useOrg } from "@/hooks/useOrg";
 import { useLabClientNames, canonicalClient, useClientPriceLookup } from "./dlabLinks";
+import { useBarcodeScanner, scanBeep } from "@/hooks/useBarcodeScanner";
+import { matchScannedCase, teethLabel, type ToothRole } from "@/lib/labScanner";
 
 /** Structured teeth, falling back to the legacy "Teeth:" line in instructions. */
 const teethOf = (c: LabCaseRow): string[] => {
@@ -58,6 +60,13 @@ export default function DlabCasesPage() {
   const [remakeFor, setRemakeFor] = useState<LabCaseRow | null>(null);
   const isRemade = (c: LabCaseRow) => c.status === REMAKE_SPAWNED;
   const [selected, setSelected] = useState<string[]>([]);
+  // Scanning a traveler barcode anywhere on the board opens that case.
+  useBarcodeScanner((code) => {
+    const c = matchScannedCase(cases, code);
+    scanBeep(!!c);
+    if (c) { setEditing(false); setOpenId(c.id); }
+    else toast({ title: `Scanned ${code}`, description: "No case with this number.", variant: "destructive" });
+  });
   const isHeld = (c: LabCaseRow) => c.status === "on_hold";
 
   /** Returns false when the move was refused. */
@@ -210,7 +219,7 @@ export default function DlabCasesPage() {
                   <Info label="Doctor" value={open.clinic_doctor_name || "—"} />
                   <Info label="Patient" value={patientOf(open)} />
                   <Info label="Due" value={open.due_date ? format(new Date(open.due_date), "d MMM yyyy") : "—"} />
-                  <Info label="Teeth" value={teethOf(open).join(", ") || "—"} />
+                  <Info label="Teeth" value={teethLabel(teethOf(open), (open as any).tooth_roles || {}).join(", ") || "—"} />
                   <Info label="Shade" value={open.shade || "—"} />
                   <Info label="Material" value={open.material || "—"} />
                   <Info label="Fee" value={money(open.lab_fee)} />
@@ -263,6 +272,7 @@ function EditCase({ c, technicians, onDone }: { c: LabCaseRow; technicians: { id
   const legacy = splitLegacyTeeth(c.instructions);
   const initTeeth = ((c as any).teeth as string[] | undefined)?.length ? (c as any).teeth as string[] : legacy.teeth;
   const [teeth, setTeeth] = useState<string[]>(initTeeth);
+  const [roles, setRoles] = useState<Record<string, ToothRole>>(((c as any).tooth_roles as Record<string, ToothRole>) || {});
   const [v, setV] = useState({
     client: clientOf(c) === "Walk-in client" ? "" : clientOf(c), doctor: c.clinic_doctor_name || "", patient: c.external_patient_name || "",
     work_type: c.work_type || WORK_TYPES[0], shade: c.shade || "", material: c.material || "", due_date: c.due_date || "",
@@ -276,6 +286,7 @@ function EditCase({ c, technicians, onDone }: { c: LabCaseRow; technicians: { id
       id: c.id, external_client_name: canonicalClient(v.client, names), clinic_doctor_name: v.doctor, external_patient_name: v.patient,
       work_type: v.work_type, shade: v.shade, material: v.material, due_date: v.due_date || null,
       lab_fee: Number(v.fee || 0), discount: Number(v.discount || 0), instructions: v.instructions, teeth,
+      tooth_roles: Object.fromEntries(Object.entries(roles).filter(([t]) => teeth.includes(t))),
       urgency: v.rush ? "urgent" : "normal", is_urgent: v.rush, technician_id: t, assigned_technician_id: t,
     }, { onSuccess: onDone });
   };
@@ -291,7 +302,7 @@ function EditCase({ c, technicians, onDone }: { c: LabCaseRow; technicians: { id
           <SelectContent>{types.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent>
         </Select>
       </F>
-      <div className="sm:col-span-2"><F label="Teeth"><TeethPicker value={teeth} onChange={setTeeth} /></F></div>
+      <div className="sm:col-span-2"><F label="Teeth"><TeethPicker value={teeth} onChange={setTeeth} roles={roles} onRolesChange={setRoles} /></F></div>
       <F label="Shade"><Input value={v.shade} onChange={(e) => set("shade", e.target.value)} /></F>
       <F label="Material"><Input value={v.material} onChange={(e) => set("material", e.target.value)} /></F>
       <F label="Due date"><Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} /></F>
@@ -326,7 +337,7 @@ function Info({ label, value }: { label: string; value: string }) {
 
 export function NewCaseDialog({ open, onOpenChange, defaultClient = "" }: { open: boolean; onOpenChange: (o: boolean) => void; defaultClient?: string }) {
   const create = useCreateDentalLabCase();
-  const blank = { client: defaultClient, doctor: "", patient: "", work_type: WORK_TYPES[0], teeth: [] as string[], shade: "", material: "", due_date: "", fee: "", instructions: "", rush: false, technician_id: "none" };
+  const blank = { client: defaultClient, doctor: "", patient: "", work_type: WORK_TYPES[0], teeth: [] as string[], tooth_roles: {} as Record<string, ToothRole>, shade: "", material: "", due_date: "", fee: "", instructions: "", rush: false, technician_id: "none" };
   const technicians = useTechnicians();
   const [v, setV] = useState<Record<string, any>>(blank);
   const names = useLabClientNames();
@@ -365,7 +376,7 @@ export function NewCaseDialog({ open, onOpenChange, defaultClient = "" }: { open
               <SelectContent>{WORK_TYPES.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent>
             </Select>
           </F>
-          <div className="sm:col-span-2"><F label="Teeth"><TeethPicker value={v.teeth} onChange={(t) => set("teeth", t)} /></F></div>
+          <div className="sm:col-span-2"><F label="Teeth"><TeethPicker value={v.teeth} onChange={(t) => set("teeth", t)} roles={v.tooth_roles} onRolesChange={(r) => set("tooth_roles", r)} /></F></div>
           <F label="Shade"><Input placeholder="e.g. A2" value={v.shade} onChange={(e) => set("shade", e.target.value)} /></F>
           <F label="Material"><Input value={v.material} onChange={(e) => set("material", e.target.value)} /></F>
           <F label="Due date"><Input type="date" value={v.due_date} onChange={(e) => set("due_date", e.target.value)} /></F>

@@ -13,6 +13,18 @@ export interface UpdateEntry {
 
 export const updates: UpdateEntry[] = [
   {
+    version: "v2.29.0",
+    date: "October 30, 2026",
+    title: "Dental lab shop floor: barcode scanning, bench timers, bridge charting",
+    kind: "feature",
+    items: [
+      { kind: "feature", text: "Scan a job traveler barcode with a USB scanner on the Case Board to open that case instantly, with a beep to confirm." },
+      { kind: "feature", text: "On My Bench, scanning a traveler starts or pauses that case's work timer. Work time is saved when you finish your step." },
+      { kind: "fix", text: "Technicians can only see their own bench. Only owners, admins and managers can switch to another technician's bench." },
+      { kind: "feature", text: "When charting a bridge, tap a selected tooth again to mark it Abutment, then Pontic." },
+    ],
+  },
+  {
     version: "v2.28.0",
     date: "October 30, 2026",
     title: "Safer dental lab: locked QC gate, all-or-nothing saves, working-day due dates",
