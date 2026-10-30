@@ -2245,6 +2245,7 @@ export type Database = {
           job_description: string | null
           job_instructions: string[] | null
           lab_fee: number | null
+          labor_seconds_total: number
           material: string | null
           notes: string | null
           org_id: string
@@ -2258,6 +2259,7 @@ export type Database = {
           status: string
           technician_id: string | null
           teeth: string[]
+          tooth_roles: Json
           treatment_id: string | null
           updated_at: string
           urgency: string | null
@@ -2291,6 +2293,7 @@ export type Database = {
           job_description?: string | null
           job_instructions?: string[] | null
           lab_fee?: number | null
+          labor_seconds_total?: number
           material?: string | null
           notes?: string | null
           org_id: string
@@ -2304,6 +2307,7 @@ export type Database = {
           status?: string
           technician_id?: string | null
           teeth?: string[]
+          tooth_roles?: Json
           treatment_id?: string | null
           updated_at?: string
           urgency?: string | null
@@ -2337,6 +2341,7 @@ export type Database = {
           job_description?: string | null
           job_instructions?: string[] | null
           lab_fee?: number | null
+          labor_seconds_total?: number
           material?: string | null
           notes?: string | null
           org_id?: string
@@ -2350,6 +2355,7 @@ export type Database = {
           status?: string
           technician_id?: string | null
           teeth?: string[]
+          tooth_roles?: Json
           treatment_id?: string | null
           updated_at?: string
           urgency?: string | null
@@ -7203,6 +7209,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       lab_batch_move: { Args: { p_moves: Json }; Returns: number }
+      lab_log_labor: {
+        Args: { p_case_id: string; p_seconds: number; p_stage: string }
+        Returns: undefined
+      }
       lab_override_qc_move: {
         Args: { p_case_id: string; p_reason: string; p_status: string }
         Returns: undefined
