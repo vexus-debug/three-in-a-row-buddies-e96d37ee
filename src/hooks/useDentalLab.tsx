@@ -83,6 +83,7 @@ export function useCreateDentalLabCase() {
         external_client_name: v.client, clinic_doctor_name: v.doctor || "", external_patient_name: v.patient || "",
         work_type: v.work_type, shade: v.shade || "", material: v.material || "",
         instructions: v.instructions || "", teeth: Array.isArray(v.teeth) ? v.teeth : [],
+        ...(v.tooth_roles && Object.keys(v.tooth_roles).length ? { tooth_roles: v.tooth_roles } : {}),
         due_date: v.due_date || null, urgency: v.rush ? "urgent" : "normal", is_urgent: !!v.rush,
         lab_fee: Number(v.fee || 0),
         technician_id: v.technician_id || null, assigned_technician_id: v.technician_id || null,
